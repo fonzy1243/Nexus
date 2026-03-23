@@ -32,7 +32,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'pnpm'
-    - run: pnpm add @tailwindcss/vite
     - run: pnpm install --frozen-lockfile --prod false
+    - run: pnpm update
     - run: pnpm run build
     # - run: pnpm test
