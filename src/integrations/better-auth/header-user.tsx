@@ -1,45 +1,114 @@
-import { authClient } from '#/lib/auth-client'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 
-export default function BetterAuthHeader() {
-  const { data: session, isPending } = authClient.useSession()
+export default function HeaderUser() {
+  const navigate = useNavigate()
+  const [username, setUsername] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  if (isPending) {
-    return (
-      <div className="h-8 w-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-    )
+  useEffect(() => {
+    function sync() {
+      setUsername(localStorage.getItem('username'))
+    }
+    sync()
+    window.addEventListener('storage', sync)
+    const t = setInterval(sync, 500)
+    setTimeout(() => clearInterval(t), 5000)
+    return () => {
+      window.removeEventListener('storage', sync)
+      clearInterval(t)
+    }
+  }, [])
+
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleLogout() {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_id')
+    localStorage.removeItem('username')
+    setUsername(null)
+    setOpen(false)
+    navigate({ to: '/' })
   }
 
-  if (session?.user) {
+  if (!username) {
     return (
-      <div className="flex items-center gap-2">
-        {session.user.image ? (
-          <img src={session.user.image} alt="" className="h-8 w-8" />
-        ) : (
-          <div className="h-8 w-8 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-            <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-              {session.user.name?.charAt(0).toUpperCase() || 'U'}
-            </span>
-          </div>
-        )}
-        <button
-          onClick={() => {
-            void authClient.signOut()
-          }}
-          className="flex-1 h-9 px-4 text-sm font-medium bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-        >
-          Sign out
-        </button>
-      </div>
+      <Link
+        to="/login"
+        className="inline-flex h-9 items-center rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-4 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:bg-[var(--lagoon)] hover:text-white"
+      >
+        Sign In
+      </Link>
     )
   }
 
   return (
-    <Link
-      to="/demo/better-auth"
-      className="h-9 px-4 text-sm font-medium bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors inline-flex items-center"
-    >
-      Sign in
-    </Link>
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] transition hover:border-[var(--lagoon)]"
+      >
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--lagoon)] text-xs font-bold text-white">
+          {username.charAt(0).toUpperCase()}
+        </span>
+        <span className="max-w-[100px] truncate">{username}</span>
+        <svg
+          className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-1.5 shadow-lg">
+          <div className="px-3 py-2 text-xs text-[var(--sea-ink-soft)]">
+            Signed in as <span className="font-semibold text-[var(--sea-ink)]">{username}</span>
+          </div>
+
+          <div className="my-1 border-t border-[var(--line)]" />
+
+          <Link
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--sea-ink)] no-underline transition hover:bg-[var(--link-bg-hover)]"
+          >
+            👤 My Profile
+          </Link>
+          <Link
+            to="/create-post"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--sea-ink)] no-underline transition hover:bg-[var(--link-bg-hover)]"
+          >
+            ✏️ Create Post
+          </Link>
+
+          <div className="my-1 border-t border-[var(--line)]" />
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-500 transition hover:bg-red-50"
+          >
+            🚪 Log Out
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
