@@ -31,6 +31,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({ username, user_id })
     }
     setIsLoading(false)
+
+    // Listen for dead token API events to instantly log the user out
+    const handleForceLogout = () => {
+      signOut()
+      // Only force redirect if they aren't already on the login page or homepage
+      if (window.location.pathname !== '/login') {
+         window.location.href = '/login'
+      }
+    }
+
+    window.addEventListener('auth:logout', handleForceLogout)
+    return () => window.removeEventListener('auth:logout', handleForceLogout)
   }, [])
 
   function signOut() {

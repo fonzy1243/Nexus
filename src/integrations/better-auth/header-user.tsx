@@ -1,26 +1,12 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
 
 export default function HeaderUser() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState<string | null>(null)
+  const { user, signOut } = useAuth()
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function sync() {
-      setUsername(localStorage.getItem('username'))
-    }
-    sync()
-    window.addEventListener('storage', sync)
-    const t = setInterval(sync, 500)
-    setTimeout(() => clearInterval(t), 5000)
-    return () => {
-      window.removeEventListener('storage', sync)
-      clearInterval(t)
-    }
-  }, [])
-
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -33,16 +19,12 @@ export default function HeaderUser() {
   }, [])
 
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_id')
-    localStorage.removeItem('username')
-    setUsername(null)
+    signOut()
     setOpen(false)
     navigate({ to: '/' })
   }
 
-  if (!username) {
+  if (!user?.username) {
     return (
       <Link
         to="/login"
@@ -61,9 +43,9 @@ export default function HeaderUser() {
         className="flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] transition hover:border-[var(--lagoon)]"
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--lagoon)] text-xs font-bold text-white">
-          {username.charAt(0).toUpperCase()}
+          {user.username.charAt(0).toUpperCase()}
         </span>
-        <span className="max-w-[100px] truncate">{username}</span>
+        <span className="max-w-[100px] truncate">{user.username}</span>
         <svg
           className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none"
@@ -78,7 +60,7 @@ export default function HeaderUser() {
       {open && (
         <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-1.5 shadow-lg">
           <div className="px-3 py-2 text-xs text-[var(--sea-ink-soft)]">
-            Signed in as <span className="font-semibold text-[var(--sea-ink)]">{username}</span>
+            Signed in as <span className="font-semibold text-[var(--sea-ink)]">{user.username}</span>
           </div>
 
           <div className="my-1 border-t border-[var(--line)]" />

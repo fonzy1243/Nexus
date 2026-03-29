@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { API_BASE } from '@/lib/api'
 
 export const Route = createFileRoute('/create-post')({ component: CreatePostPage })
-
-const API_BASE = 'https://nexus-api-poj0.onrender.com'
 
 function CreatePostPage() {
   const navigate = useNavigate()
