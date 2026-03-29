@@ -9,16 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SubmitRouteImport } from './routes/submit'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForumRouteImport } from './routes/forum'
+import { Route as CreatePostRouteImport } from './routes/create-post'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PostsPostIdRouteImport } from './routes/posts/$postId'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoBetterAuthRouteImport } from './routes/demo/better-auth'
+import { Route as CCommunityRouteImport } from './routes/c/$community'
+import { Route as ApiRedditRouteImport } from './routes/api/reddit'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SubmitRoute = SubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumRoute = ForumRouteImport.update({
+  id: '/forum',
+  path: '/forum',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatePostRoute = CreatePostRouteImport.update({
+  id: '/create-post',
+  path: '/create-post',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -31,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostsPostIdRoute = PostsPostIdRouteImport.update({
+  id: '/posts/$postId',
+  path: '/posts/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
   id: '/demo/tanstack-query',
   path: '/demo/tanstack-query',
@@ -39,6 +71,16 @@ const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
 const DemoBetterAuthRoute = DemoBetterAuthRouteImport.update({
   id: '/demo/better-auth',
   path: '/demo/better-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CCommunityRoute = CCommunityRouteImport.update({
+  id: '/c/$community',
+  path: '/c/$community',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRedditRoute = ApiRedditRouteImport.update({
+  id: '/api/reddit',
+  path: '/api/reddit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -50,26 +92,47 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-post': typeof CreatePostRoute
+  '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
+  '/api/reddit': typeof ApiRedditRoute
+  '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-post': typeof CreatePostRoute
+  '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
+  '/api/reddit': typeof ApiRedditRoute
+  '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-post': typeof CreatePostRoute
+  '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
+  '/api/reddit': typeof ApiRedditRoute
+  '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -77,44 +140,100 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/create-post'
+    | '/forum'
     | '/login'
+    | '/profile'
+    | '/submit'
+    | '/api/reddit'
+    | '/c/$community'
     | '/demo/better-auth'
     | '/demo/tanstack-query'
+    | '/posts/$postId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/create-post'
+    | '/forum'
     | '/login'
+    | '/profile'
+    | '/submit'
+    | '/api/reddit'
+    | '/c/$community'
     | '/demo/better-auth'
     | '/demo/tanstack-query'
+    | '/posts/$postId'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/create-post'
+    | '/forum'
     | '/login'
+    | '/profile'
+    | '/submit'
+    | '/api/reddit'
+    | '/c/$community'
     | '/demo/better-auth'
     | '/demo/tanstack-query'
+    | '/posts/$postId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  CreatePostRoute: typeof CreatePostRoute
+  ForumRoute: typeof ForumRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
+  SubmitRoute: typeof SubmitRoute
+  ApiRedditRoute: typeof ApiRedditRoute
+  CCommunityRoute: typeof CCommunityRoute
   DemoBetterAuthRoute: typeof DemoBetterAuthRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
+  PostsPostIdRoute: typeof PostsPostIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/submit': {
+      id: '/submit'
+      path: '/submit'
+      fullPath: '/submit'
+      preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum': {
+      id: '/forum'
+      path: '/forum'
+      fullPath: '/forum'
+      preLoaderRoute: typeof ForumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-post': {
+      id: '/create-post'
+      path: '/create-post'
+      fullPath: '/create-post'
+      preLoaderRoute: typeof CreatePostRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -131,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/posts/$postId': {
+      id: '/posts/$postId'
+      path: '/posts/$postId'
+      fullPath: '/posts/$postId'
+      preLoaderRoute: typeof PostsPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/tanstack-query': {
       id: '/demo/tanstack-query'
       path: '/demo/tanstack-query'
@@ -143,6 +269,20 @@ declare module '@tanstack/react-router' {
       path: '/demo/better-auth'
       fullPath: '/demo/better-auth'
       preLoaderRoute: typeof DemoBetterAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$community': {
+      id: '/c/$community'
+      path: '/c/$community'
+      fullPath: '/c/$community'
+      preLoaderRoute: typeof CCommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reddit': {
+      id: '/api/reddit'
+      path: '/api/reddit'
+      fullPath: '/api/reddit'
+      preLoaderRoute: typeof ApiRedditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -158,9 +298,16 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  CreatePostRoute: CreatePostRoute,
+  ForumRoute: ForumRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
+  SubmitRoute: SubmitRoute,
+  ApiRedditRoute: ApiRedditRoute,
+  CCommunityRoute: CCommunityRoute,
   DemoBetterAuthRoute: DemoBetterAuthRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  PostsPostIdRoute: PostsPostIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

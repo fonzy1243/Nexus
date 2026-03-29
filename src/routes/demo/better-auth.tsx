@@ -13,6 +13,7 @@ function BetterAuthDemo() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   if (isPending) {
@@ -85,6 +86,7 @@ function BetterAuthDemo() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     try {
@@ -94,8 +96,17 @@ function BetterAuthDemo() {
           password,
           name,
         })
+
         if (result.error) {
           setError(result.error.message || 'Sign up failed')
+        } else {
+          setSuccess(
+            'Sign up successful! Please confirm your email (if required) then sign in.'
+          )
+          setEmail('')
+          setPassword('')
+          setName('')
+          setIsSignUp(false)
         }
       } else {
         const result = await authClient.signIn.email({
@@ -177,6 +188,12 @@ function BetterAuthDemo() {
             />
           </div>
 
+          {success && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-3">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{success}</p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -207,6 +224,7 @@ function BetterAuthDemo() {
             onClick={() => {
               setIsSignUp(!isSignUp)
               setError('')
+              setSuccess('')
             }}
             className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
           >
