@@ -1,64 +1,122 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import {
+  getUserPosts,
+  getUserComments,
+  changeUsername,
+  changePassword,
+  setSecurityQuestion,
+  type Post,
+  type CommentSummary,
+} from '@/lib/api'
+import PostCard from '@/components/PostCard'
 
 export const Route = createFileRoute('/profile')({ component: ProfilePage })
 
-const API_BASE = 'https://nexus-api-poj0.onrender.com'
+type TabMode = 'posts' | 'comments' | 'settings'
 
-interface Post {
-  id: string
-  title: string
-  body: string
-  community_id: string
-  created_at: string
-  is_pinned: boolean
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
 }
 
 function ProfilePage() {
-  const [username, setUsername] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [hydrated, setHydrated] = useState(false)
+  const { user, isLoading, setUser } = useAuth()
+  const navigate = useNavigate()
+
+  const [tab, setTab] = useState<TabMode>('posts')
+
   const [posts, setPosts] = useState<Post[]>([])
-  const [loadingPosts, setLoadingPosts] = useState(false)
-  const [postsError, setPostsError] = useState<string | null>(null)
+  const [comments, setComments] = useState<CommentSummary[]>([])
+  const [loadingContent, setLoadingContent] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  
+  // Settings Form States
+  const [formMsg, setFormMsg] = useState<{ type: 'error'|'success', text: string } | null>(null)
+  const [newUsername, setNewUsername] = useState('')
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [secQuestion, setSecQuestion] = useState<'firstPet' | 'childhoodNickname' | 'firstCarModel'>('firstPet')
+  const [secAnswer, setSecAnswer] = useState('')
+  const [secCurrentPw, setSecCurrentPw] = useState('')
 
-  // Read localStorage only after mount — SSR doesn't have window
   useEffect(() => {
-    const u = localStorage.getItem('username')
-    const id = localStorage.getItem('user_id')
-    const token = localStorage.getItem('access_token')
-    setUsername(u)
-    setUserId(id)
-    setAccessToken(token)
-    setHydrated(true)
-  }, [])
+    if (!user?.user_id) return
+    setLoadingContent(true)
+    setErrorMsg(null)
 
-  // Fetch posts once we know who's logged in
-  useEffect(() => {
-    if (!hydrated || !userId || !accessToken) return
+    if (tab === 'posts') {
+      getUserPosts(user.user_id)
+        .then(setPosts)
+        .catch((err) => setErrorMsg(err.message))
+        .finally(() => setLoadingContent(false))
+    } else if (tab === 'comments') {
+      getUserComments(user.user_id)
+        .then(setComments)
+        .catch((err) => setErrorMsg(err.message))
+        .finally(() => setLoadingContent(false))
+    } else {
+      setLoadingContent(false)
+      setFormMsg(null)
+    }
+  }, [user?.user_id, tab])
 
-    setLoadingPosts(true)
-    fetch(`${API_BASE}/users/${userId}/posts`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load posts (${res.status})`)
-        return res.json()
-      })
-      .then((data) => setPosts(data))
-      .catch((err: unknown) =>
-        setPostsError(err instanceof Error ? err.message : 'Could not load posts'),
-      )
-      .finally(() => setLoadingPosts(false))
-  }, [hydrated, userId, accessToken])
+  async function handleUpdateUsername(e: React.FormEvent) {
+    e.preventDefault()
+    setFormMsg(null)
+    try {
+      await changeUsername(newUsername)
+      // update local
+      localStorage.setItem('username', newUsername)
+      setUser({ user_id: user!.user_id, username: newUsername })
+      setFormMsg({ type: 'success', text: 'Username updated successfully.' })
+      setNewUsername('')
+    } catch (err: any) {
+      setFormMsg({ type: 'error', text: err.message || 'Failed to update username' })
+    }
+  }
 
-  // Still hydrating — show nothing to avoid flash
-  if (!hydrated) return null
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setFormMsg(null)
+    if (pwNew !== pwConfirm) {
+      setFormMsg({ type: 'error', text: 'Passwords do not match.' })
+      return
+    }
+    try {
+      await changePassword(pwCurrent, pwNew, pwConfirm)
+      setFormMsg({ type: 'success', text: 'Password updated successfully.' })
+      setPwCurrent('')
+      setPwNew('')
+      setPwConfirm('')
+    } catch (err: any) {
+      setFormMsg({ type: 'error', text: err.message || 'Failed to update password' })
+    }
+  }
 
-  // Not logged in
-  if (!username || !accessToken) {
+  async function handleUpdateSecurity(e: React.FormEvent) {
+    e.preventDefault()
+    setFormMsg(null)
+    try {
+      await setSecurityQuestion(secQuestion, secAnswer, secCurrentPw)
+      setFormMsg({ type: 'success', text: 'Security question saved successfully.' })
+      setSecAnswer('')
+      setSecCurrentPw('')
+    } catch (err: any) {
+      setFormMsg({ type: 'error', text: err.message || 'Failed to save security question' })
+    }
+  }
+
+  if (isLoading) return null
+
+  if (!user) {
     return (
       <main className="page-wrap flex min-h-[calc(100vh-72px)] items-center justify-center px-4 py-14">
         <div className="island-shell rise-in w-full max-w-md rounded-[2rem] px-8 py-10 text-center">
@@ -86,11 +144,11 @@ function ProfilePage() {
 
         <div className="relative flex items-center gap-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--lagoon)] text-2xl font-bold text-white shadow-[0_4px_14px_rgba(79,184,178,0.4)]">
-            {username.charAt(0).toUpperCase()}
+            {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="display-title text-2xl font-bold text-[var(--sea-ink)]">{username}</h1>
-            <p className="text-sm text-[var(--sea-ink-soft)]">Nexus member</p>
+            <h1 className="display-title text-2xl font-bold text-[var(--sea-ink)]">{user.username}</h1>
+            <p className="text-sm text-[var(--sea-ink-soft)]">My Dashboard</p>
           </div>
           <Link
             to="/create-post"
@@ -101,56 +159,158 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Posts section */}
-      <div className="island-shell rounded-[2rem] px-8 py-8">
-        <h2 className="mb-5 text-lg font-bold text-[var(--sea-ink)]">Your Posts</h2>
+      <div className="mb-6 flex gap-4 border-b border-[var(--line)] px-2">
+        {(['posts', 'comments', 'settings'] as TabMode[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`pb-3 text-sm font-semibold capitalize transition-colors ${
+              tab === t ? 'border-b-2 border-[var(--lagoon)] text-[var(--sea-ink)]' : 'text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)]'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
 
-        {loadingPosts && (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 animate-pulse rounded-xl bg-[var(--surface-strong)]" />
-            ))}
+      <div className="island-shell min-h-[400px] rounded-[2rem] px-8 py-8">
+        {loadingContent && <p className="animate-pulse text-sm text-[var(--sea-ink-soft)]">Loading…</p>}
+        {errorMsg && <p className="text-sm text-red-500">{errorMsg}</p>}
+
+        {/* POSTS TAB */}
+        {!loadingContent && tab === 'posts' && (
+          <div className="space-y-4">
+            {posts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[var(--sea-ink-soft)]">You haven't posted anything yet.</p>
+            ) : (
+              posts.map((post) => <PostCard key={post.id} post={post} />)
+            )}
           </div>
         )}
 
-        {postsError && (
-          <p className="text-sm text-red-500">{postsError}</p>
-        )}
-
-        {!loadingPosts && !postsError && posts.length === 0 && (
-          <p className="py-6 text-center text-sm text-[var(--sea-ink-soft)]">
-            You haven't posted anything yet.
-          </p>
-        )}
-
-        {!loadingPosts && posts.length > 0 && (
+        {/* COMMENTS TAB */}
+        {!loadingContent && tab === 'comments' && (
           <div className="space-y-4">
-            {posts.map((post) => (
-              <article
-                key={post.id}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-5 transition hover:border-[var(--lagoon)]"
-              >
-                <div className="mb-1 flex items-start justify-between gap-2">
-                  <h3 className="text-base font-semibold text-[var(--sea-ink)]">{post.title}</h3>
-                  {post.is_pinned && (
-                    <span className="rounded-full bg-[rgba(79,184,178,0.15)] px-2 py-0.5 text-xs font-medium text-[var(--lagoon-deep)]">
-                      📌 Pinned
-                    </span>
-                  )}
-                </div>
-                <p className="mb-3 line-clamp-2 text-sm text-[var(--sea-ink-soft)]">{post.body}</p>
-                <p className="text-xs text-[var(--sea-ink-soft)]">
-                  {new Date(post.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </article>
-            ))}
+            {comments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[var(--sea-ink-soft)]">You haven't commented on anything yet.</p>
+            ) : (
+              comments.map((comment) => (
+                <article key={comment.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-5 transition hover:border-[var(--lagoon)]">
+                  <div className="mb-2 text-xs text-[var(--sea-ink-soft)]">
+                    You commented on{' '}
+                    <Link to="/posts/$postId" params={{ postId: comment.post_id }} className="font-semibold text-[var(--sea-ink)] hover:underline">
+                      {comment.post_title}
+                    </Link>
+                    {' '}· {timeAgo(comment.created_at)}
+                  </div>
+                  <p className="text-sm text-[var(--sea-ink)]">{comment.body}</p>
+                </article>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* SETTINGS TAB */}
+        {!loadingContent && tab === 'settings' && (
+          <div className="mx-auto max-w-lg space-y-10">
+            {formMsg && (
+              <div className={`rounded-xl px-4 py-3 text-sm font-medium ${formMsg.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                {formMsg.text}
+              </div>
+            )}
+
+            {/* Change Username section */}
+            <section>
+              <h3 className="mb-4 text-base font-bold text-[var(--sea-ink)] border-b border-[var(--line)] pb-2">Change Username</h3>
+              <form onSubmit={handleUpdateUsername} className="space-y-3">
+                <input
+                  type="text"
+                  required
+                  placeholder="New Username"
+                  value={newUsername}
+                  onChange={e => setNewUsername(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <button type="submit" className="rounded-xl bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold text-[var(--sea-ink)] border border-[var(--line)] hover:bg-[var(--chip-bg)]">
+                  Update Username
+                </button>
+              </form>
+            </section>
+
+            {/* Change Password section */}
+            <section>
+              <h3 className="mb-4 text-base font-bold text-[var(--sea-ink)] border-b border-[var(--line)] pb-2">Change Password</h3>
+              <form onSubmit={handleUpdatePassword} className="space-y-3">
+                <input
+                  type="password"
+                  required
+                  placeholder="Current Password"
+                  value={pwCurrent}
+                  onChange={e => setPwCurrent(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="New Password"
+                  value={pwNew}
+                  onChange={e => setPwNew(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Confirm New Password"
+                  value={pwConfirm}
+                  onChange={e => setPwConfirm(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <button type="submit" className="rounded-xl bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold text-[var(--sea-ink)] border border-[var(--line)] hover:bg-[var(--chip-bg)]">
+                  Update Password
+                </button>
+              </form>
+            </section>
+
+            {/* Recovery Question section */}
+            <section>
+              <h3 className="mb-4 text-base font-bold text-[var(--sea-ink)] border-b border-[var(--line)] pb-2">Account Recovery</h3>
+              <p className="mb-4 text-xs text-[var(--sea-ink-soft)]">Set up a security question to recover your account if you forget your password.</p>
+              <form onSubmit={handleUpdateSecurity} className="space-y-3">
+                <select
+                  value={secQuestion}
+                  onChange={e => setSecQuestion(e.target.value as any)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                >
+                  <option value="firstPet">What was the name of your first pet?</option>
+                  <option value="childhoodNickname">What was your childhood nickname?</option>
+                  <option value="firstCarModel">What was the model of your first car?</option>
+                </select>
+                <input
+                  type="text"
+                  required
+                  placeholder="Your Answer"
+                  value={secAnswer}
+                  onChange={e => setSecAnswer(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Current Password (required to save)"
+                  value={secCurrentPw}
+                  onChange={e => setSecCurrentPw(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
+                />
+                <button type="submit" className="rounded-xl bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold text-[var(--sea-ink)] border border-[var(--line)] hover:bg-[var(--chip-bg)]">
+                  Save Security Question
+                </button>
+              </form>
+            </section>
+
           </div>
         )}
       </div>
     </main>
   )
 }
+

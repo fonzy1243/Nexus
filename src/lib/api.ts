@@ -1,6 +1,5 @@
-
 // i did local muna (we can swap in real API calls later when ready)
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export interface AuthResponse {
   access_token: string
@@ -45,8 +44,8 @@ export interface Community {
   post_count: number
 }
 
-// token storage (in memory)
-let _accessToken: string | null = null
+// token storage (in memory but initialized from localStorage if available)
+let _accessToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
 
 export function getToken() { return _accessToken }
 export function setToken(t: string | null) { _accessToken = t }
@@ -56,17 +55,37 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(init.headers as Record<string, string> ?? {}),
   }
-  if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`
+  
+  let token = _accessToken || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  let res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
-    credentials: 'include', // needed for refresh_token cookie
+    credentials: 'include',
   })
+
+  // If unauthorized and NOT already trying to refresh, attempt automatic token refresh
+  if (res.status === 401 && path !== '/users/auth/refresh') {
+    const newToken = await refreshToken()
+    if (newToken) {
+      // Update the header with the fresh token and retry exactly once
+      headers['Authorization'] = `Bearer ${newToken}`
+      res = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        headers,
+        credentials: 'include',
+      })
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
-    throw new Error(text || `HTTP ${res.status}`)
+    let parsed
+    try { parsed = JSON.parse(text) } catch { /* ignore */ }
+    throw new Error(parsed?.error || parsed?.message || text || `HTTP ${res.status}`)
   }
 
   return res.json() as Promise<T>
@@ -100,13 +119,26 @@ export async function logout(): Promise<void> {
 
 export async function refreshToken(): Promise<string | null> {
   try {
-    const data = await apiFetch<{ access_token: string }>('/users/auth/refresh', {
+    const res = await fetch(`${API_BASE}/users/auth/refresh`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
     })
+    
+    if (!res.ok) throw new Error('Refresh failed')
+      
+    const data = await res.json()
     setToken(data.access_token)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', data.access_token)
+    }
     return data.access_token
   } catch {
     setToken(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token')
+      window.dispatchEvent(new Event('auth:logout'))
+    }
     return null
   }
 }
@@ -160,6 +192,67 @@ export async function getCommunity(name: string): Promise<Community> {
   return apiFetch(`/communities/${name}`)
 }
 
+
 export async function getCommunityPosts(name: string, page = 1): Promise<Post[]> {
   return apiFetch(`/communities/${name}/posts?page=${page}`)
+}
+
+// User profiles & settings
+
+export interface PublicUserProfile {
+  id: string
+  username: string
+  created_at: string
+}
+
+export interface CommentSummary {
+  id: string
+  body: string
+  created_at: string
+  post_id: string
+  post_title: string
+  author: string
+}
+
+export async function getUserByUsername(username: string): Promise<PublicUserProfile> {
+  return apiFetch(`/users/u/${username}`)
+}
+
+export async function getUserComments(userId: string, page = 1): Promise<CommentSummary[]> {
+  return apiFetch(`/users/${userId}/comments?page=${page}`)
+}
+
+export async function getUserPosts(userId: string, page = 1): Promise<Post[]> {
+  return apiFetch(`/users/${userId}/posts?page=${page}`)
+}
+
+export async function changeUsername(username: string): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/users/me/username', {
+    method: 'PATCH',
+    body: JSON.stringify({ username, target_user_id: null }),
+  })
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', data.access_token)
+  }
+  setToken(data.access_token)
+  return data
+}
+
+export async function changePassword(current_password: string, new_password: string, confirm_password: string): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/users/me/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ current_password, new_password, confirm_password }),
+  })
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', data.access_token)
+  }
+  setToken(data.access_token)
+  return data
+}
+
+export async function setSecurityQuestion(question: 'firstPet' | 'childhoodNickname' | 'firstCarModel', answer: string, current_password: string): Promise<void> {
+  return apiFetch('/users/me/security-question', {
+    method: 'POST',
+    body: JSON.stringify({ question, answer, current_password }),
+  })
 }

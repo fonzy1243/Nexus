@@ -1,14 +1,15 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { API_BASE } from '@/lib/api'
 
 export const Route = createFileRoute('/login')({ component: LoginPage })
-
-const API_BASE = 'https://nexus-api-poj0.onrender.com'
 
 type Tab = 'login' | 'register'
 
 function LoginPage() {
   const navigate = useNavigate()
+  const { setUser } = useAuth()
   const [tab, setTab] = useState<Tab>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,13 +56,14 @@ function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message ?? `Login failed (${res.status})`)
+        throw new Error(data.error || data.message || `Login failed (${res.status})`)
       }
 
       // store access token + basic user info
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('user_id', data.user_id)
       localStorage.setItem('username', data.username)
+      setUser({ username: data.username, user_id: data.user_id })
 
       navigate({ to: '/' })
     } catch (err: unknown) {
@@ -101,13 +103,14 @@ function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message ?? `Registration failed (${res.status})`)
+        throw new Error(data.error || data.message || `Registration failed (${res.status})`)
       }
 
       // Registration also returns tokens — log the user straight in
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('user_id', data.user_id)
       localStorage.setItem('username', data.username)
+      setUser({ username: data.username, user_id: data.user_id })
 
       navigate({ to: '/' })
     } catch (err: unknown) {

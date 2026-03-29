@@ -84,7 +84,13 @@ export default function PostCard({ post, compact }: PostCardProps) {
             n/{post.community_name}
           </Link>
           <span>·</span>
-          <span>Posted by u/{post.author}</span>
+          <Link
+            to="/u/$username"
+            params={{ username: post.author }}
+            className="font-semibold text-[var(--sea-ink)] no-underline hover:underline"
+          >
+            Posted by u/{post.author}
+          </Link>
           <span>·</span>
           <span>{timeAgo(post.created_at)}</span>
           {post.is_pinned && (
