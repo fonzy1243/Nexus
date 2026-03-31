@@ -30,6 +30,20 @@ export default function Header() {
             Home
           </Link>
           <Link
+            to="/submit"
+            className="nav-link"
+            activeProps={{ className: 'nav-link is-active' }}
+          >
+            + Post
+          </Link>
+          <Link
+            to="/create-community"
+            className="nav-link"
+            activeProps={{ className: 'nav-link is-active' }}
+          >
+            + Community
+          </Link>
+          <Link
             to="/about"
             className="nav-link"
             activeProps={{ className: 'nav-link is-active' }}

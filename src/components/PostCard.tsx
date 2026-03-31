@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { Post } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context.tsx'
+import { votePost } from '@/lib/api'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -20,19 +21,15 @@ interface PostCardProps {
 
 export default function PostCard({ post, compact }: PostCardProps) {
   const { user } = useAuth()
-  const [votes, setVotes] = useState(post.vote_count)
+  const [votes, setVotes] = useState(post.vote_count ?? 0)
   const [userVote, setUserVote] = useState<1 | -1 | 0>(0)
 
   function handleVote(v: 1 | -1) {
     if (!user) return
-    if (userVote === v) {
-      setVotes(votes - v)
-      setUserVote(0)
-    } else {
-      setVotes(votes - userVote + v)
-      setUserVote(v)
-    }
-    // TODO: call votePost(post.id, v) from api.ts
+    const next: 1 | -1 | 0 = userVote === v ? 0 : v
+    setVotes(votes - userVote + next)
+    setUserVote(next)
+    votePost(post.id, v).catch(() => {}) // fire-and-forget
   }
 
   return (
@@ -76,13 +73,17 @@ export default function PostCard({ post, compact }: PostCardProps) {
       <div className="min-w-0 flex-1">
         {/* Meta row */}
         <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--sea-ink-soft)]">
-          <Link
-            to="/c/$community"
-            params={{ community: post.community_name }}
-            className="font-semibold text-[var(--sea-ink)] no-underline hover:underline"
-          >
-            n/{post.community_name}
-          </Link>
+          {post.community_name ? (
+            <Link
+              to="/c/$community"
+              params={{ community: post.community_name }}
+              className="font-semibold text-[var(--sea-ink)] no-underline hover:underline"
+            >
+              n/{post.community_name}
+            </Link>
+          ) : (
+            <span className="font-semibold text-[var(--sea-ink)]">Community</span>
+          )}
           <span>·</span>
           <Link
             to="/u/$username"

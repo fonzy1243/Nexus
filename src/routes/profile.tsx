@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import {
@@ -14,7 +14,7 @@ import PostCard from '@/components/PostCard'
 
 export const Route = createFileRoute('/profile')({ component: ProfilePage })
 
-type TabMode = 'posts' | 'comments' | 'settings'
+type TabMode = 'posts' | 'comments' | 'communities' | 'settings'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -28,12 +28,13 @@ function timeAgo(iso: string) {
 
 function ProfilePage() {
   const { user, isLoading, setUser } = useAuth()
-  const navigate = useNavigate()
+
 
   const [tab, setTab] = useState<TabMode>('posts')
 
   const [posts, setPosts] = useState<Post[]>([])
   const [comments, setComments] = useState<CommentSummary[]>([])
+  const [joinedCommunities, setJoinedCommunities] = useState<string[]>([])
   const [loadingContent, setLoadingContent] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   
@@ -43,7 +44,7 @@ function ProfilePage() {
   const [pwCurrent, setPwCurrent] = useState('')
   const [pwNew, setPwNew] = useState('')
   const [pwConfirm, setPwConfirm] = useState('')
-  const [secQuestion, setSecQuestion] = useState<'firstPet' | 'childhoodNickname' | 'firstCarModel'>('firstPet')
+  const [secQuestion, setSecQuestion] = useState<'FirstPet' | 'ChildhoodNickname' | 'FirstCarModel'>('FirstPet')
   const [secAnswer, setSecAnswer] = useState('')
   const [secCurrentPw, setSecCurrentPw] = useState('')
 
@@ -55,12 +56,28 @@ function ProfilePage() {
     if (tab === 'posts') {
       getUserPosts(user.user_id)
         .then(setPosts)
-        .catch((err) => setErrorMsg(err.message))
+        .catch(() => setPosts([]))
         .finally(() => setLoadingContent(false))
     } else if (tab === 'comments') {
       getUserComments(user.user_id)
         .then(setComments)
-        .catch((err) => setErrorMsg(err.message))
+        .catch(() => setComments([]))
+        .finally(() => setLoadingContent(false))
+    } else if (tab === 'communities') {
+      // Communities the user has interacted with — derived from posts
+      getUserPosts(user.user_id)
+        .then(p => {
+          const seen = new Set<string>()
+          const names: string[] = []
+          for (const post of p) {
+            if (post.community_name && !seen.has(post.community_name)) {
+              seen.add(post.community_name)
+              names.push(post.community_name)
+            }
+          }
+          setJoinedCommunities(names)
+        })
+        .catch(() => setJoinedCommunities([]))
         .finally(() => setLoadingContent(false))
     } else {
       setLoadingContent(false)
@@ -151,7 +168,7 @@ function ProfilePage() {
             <p className="text-sm text-[var(--sea-ink-soft)]">My Dashboard</p>
           </div>
           <Link
-            to="/create-post"
+            to="/submit"
             className="ml-auto inline-flex items-center gap-2 rounded-full bg-[var(--lagoon)] px-5 py-2 text-sm font-semibold text-white no-underline shadow-[0_4px_14px_rgba(79,184,178,0.3)] transition hover:-translate-y-0.5 hover:bg-[var(--lagoon-deep)]"
           >
             + Create Post
@@ -160,7 +177,7 @@ function ProfilePage() {
       </div>
 
       <div className="mb-6 flex gap-4 border-b border-[var(--line)] px-2">
-        {(['posts', 'comments', 'settings'] as TabMode[]).map((t) => (
+        {(['posts', 'comments', 'communities', 'settings'] as TabMode[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -199,12 +216,37 @@ function ProfilePage() {
                   <div className="mb-2 text-xs text-[var(--sea-ink-soft)]">
                     You commented on{' '}
                     <Link to="/posts/$postId" params={{ postId: comment.post_id }} className="font-semibold text-[var(--sea-ink)] hover:underline">
-                      {comment.post_title}
+                      {comment.post_title || 'a post'}
                     </Link>
                     {' '}· {timeAgo(comment.created_at)}
                   </div>
                   <p className="text-sm text-[var(--sea-ink)]">{comment.body}</p>
                 </article>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* COMMUNITIES TAB */}
+        {!loadingContent && tab === 'communities' && (
+          <div className="space-y-3">
+            {joinedCommunities.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[var(--sea-ink-soft)]">You haven't interacted with any communities yet.</p>
+            ) : (
+              joinedCommunities.map((name) => (
+                <Link
+                  key={name}
+                  to="/c/$community"
+                  params={{ community: name }}
+                  className="flex items-center gap-3 rounded-2xl border border-[var(--line)] px-5 py-4 no-underline transition hover:border-[var(--lagoon)] hover:bg-[var(--link-bg-hover)]"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--lagoon)] text-lg font-bold text-white">
+                    {name.charAt(0).toUpperCase()}
+                  </span>
+                  <div>
+                    <p className="m-0 font-semibold text-[var(--sea-ink)]">n/{name}</p>
+                  </div>
+                </Link>
               ))
             )}
           </div>
@@ -281,9 +323,9 @@ function ProfilePage() {
                   onChange={e => setSecQuestion(e.target.value as any)}
                   className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--lagoon)]"
                 >
-                  <option value="firstPet">What was the name of your first pet?</option>
-                  <option value="childhoodNickname">What was your childhood nickname?</option>
-                  <option value="firstCarModel">What was the model of your first car?</option>
+                  <option value="FirstPet">What was the name of your first pet?</option>
+                  <option value="ChildhoodNickname">What was your childhood nickname?</option>
+                  <option value="FirstCarModel">What was the model of your first car?</option>
                 </select>
                 <input
                   type="text"

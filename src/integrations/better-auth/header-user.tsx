@@ -73,7 +73,7 @@ export default function HeaderUser() {
             👤 My Profile
           </Link>
           <Link
-            to="/create-post"
+            to="/submit"
             onClick={() => setOpen(false)}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--sea-ink)] no-underline transition hover:bg-[var(--link-bg-hover)]"
           >

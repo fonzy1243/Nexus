@@ -2,13 +2,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { Community } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context.tsx'
-import { MOCK_COMMUNITIES, delay } from '@/lib/mock-data'
+import { getCommunities, createPost } from '@/lib/api'
 
-// swap nalang sa real API pag ready na
-async function fetchCommunities(): Promise<Community[]> {
-  await delay(150)
-  return MOCK_COMMUNITIES
-}
 
 export const Route = createFileRoute('/submit')({ component: SubmitPage })
 
@@ -23,10 +18,10 @@ function SubmitPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchCommunities().then(c => {
+    getCommunities().then(c => {
       setCommunities(c)
       if (c.length > 0) setCommunityId(c[0].id)
-    })
+    }).catch(() => {})
   }, [])
 
   if (!user) {
@@ -44,14 +39,12 @@ function SubmitPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!title.trim() || !body.trim() || !communityId) return
+    if (!title.trim() || !communityId) return
     setError(null)
     setLoading(true)
     try {
-      // TODO: const post = await createPost({ title, body, community_id: communityId })
-      // navigate({ to: '/posts/$postId', params: { postId: post.id } })
-      await delay(700)
-      navigate({ to: '/' })
+      const post = await createPost({ title, body, community_id: communityId })
+      navigate({ to: '/posts/$postId', params: { postId: post.id } })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit post.')
     } finally {
