@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { setToken } from '@/lib/api'
 
 export interface AuthUser {
   user_id: string
@@ -23,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Restore user from localStorage on mount
+  // Restore user identity (not token) from localStorage on mount
   useEffect(() => {
     const username = localStorage.getItem('username')
     const user_id = localStorage.getItem('user_id')
@@ -35,9 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for dead token API events to instantly log the user out
     const handleForceLogout = () => {
       signOut()
-      // Only force redirect if they aren't already on the login page or homepage
       if (window.location.pathname !== '/login') {
-         window.location.href = '/login'
+        window.location.href = '/login'
       }
     }
 
@@ -46,8 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   function signOut() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    // Clear in-memory access token (fix #11 + #21)
+    setToken(null)
+    // Clear user identity from localStorage
     localStorage.removeItem('user_id')
     localStorage.removeItem('username')
     setUser(null)

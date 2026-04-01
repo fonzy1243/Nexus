@@ -44,8 +44,8 @@ export interface Community {
   post_count: number
 }
 
-// token storage (in memory but initialized from localStorage if available)
-let _accessToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+// token storage — purely in-memory (never touches localStorage)
+let _accessToken: string | null = null
 
 export function getToken() { return _accessToken }
 export function setToken(t: string | null) { _accessToken = t }
@@ -56,7 +56,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...(init.headers as Record<string, string> ?? {}),
   }
   
-  let token = _accessToken || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
+  let token = _accessToken
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
@@ -129,14 +129,10 @@ export async function refreshToken(): Promise<string | null> {
       
     const data = await res.json()
     setToken(data.access_token)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', data.access_token)
-    }
     return data.access_token
   } catch {
     setToken(null)
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token')
       window.dispatchEvent(new Event('auth:logout'))
     }
     return null
@@ -231,9 +227,6 @@ export async function changeUsername(username: string): Promise<AuthResponse> {
     method: 'PATCH',
     body: JSON.stringify({ username, target_user_id: null }),
   })
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', data.access_token)
-  }
   setToken(data.access_token)
   return data
 }
@@ -243,9 +236,6 @@ export async function changePassword(current_password: string, new_password: str
     method: 'PATCH',
     body: JSON.stringify({ current_password, new_password, confirm_password }),
   })
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', data.access_token)
-  }
   setToken(data.access_token)
   return data
 }
