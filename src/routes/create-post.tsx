@@ -1,26 +1,26 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { API_BASE } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
+import { createPost, getCommunities } from '@/lib/api'
+import type { Community } from '@/lib/api'
 
 export const Route = createFileRoute('/create-post')({ component: CreatePostPage })
 
 function CreatePostPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState<string | null>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [hydrated, setHydrated] = useState(false)
+  const { user, isLoading: authLoading } = useAuth()
 
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [communityId, setCommunityId] = useState('')
+  const [communities, setCommunities] = useState<Community[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Read localStorage only after mount — SSR doesn't have window
   useEffect(() => {
-    setUsername(localStorage.getItem('username'))
-    setAccessToken(localStorage.getItem('access_token'))
-    setHydrated(true)
+    getCommunities()
+      .then(setCommunities)
+      .catch(() => {/* silently fail, manual ID still works */})
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,21 +34,7 @@ function CreatePostPage() {
 
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({ title, body, community_id: communityId }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.message ?? `Failed to create post (${res.status})`)
-      }
-
+      await createPost({ title, body, community_id: communityId })
       navigate({ to: '/' })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -57,11 +43,10 @@ function CreatePostPage() {
     }
   }
 
-  // Still hydrating
-  if (!hydrated) return null
+  if (authLoading) return null
 
   // Not logged in
-  if (!username || !accessToken) {
+  if (!user) {
     return (
       <main className="page-wrap flex min-h-[calc(100vh-72px)] items-center justify-center px-4 py-14">
         <div className="island-shell rise-in w-full max-w-md rounded-[2rem] px-8 py-10 text-center">
@@ -94,7 +79,7 @@ function CreatePostPage() {
             Create a Post
           </h1>
           <p className="mb-8 text-sm text-[var(--sea-ink-soft)]">
-            Posting as <span className="font-semibold text-[var(--lagoon-deep)]">{username}</span>
+            Posting as <span className="font-semibold text-[var(--lagoon-deep)]">{user.username}</span>
           </p>
 
           {error && (
@@ -104,19 +89,36 @@ function CreatePostPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Community selector */}
             <div>
               <label htmlFor="community-id" className="mb-1.5 block text-sm font-semibold text-[var(--sea-ink)]">
-                Community ID
+                Community
               </label>
-              <input
-                id="community-id"
-                type="text"
-                required
-                value={communityId}
-                onChange={(e) => setCommunityId(e.target.value)}
-                placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm text-[var(--sea-ink)] placeholder:text-[var(--sea-ink-soft)] outline-none transition focus:border-[var(--lagoon)] focus:ring-2 focus:ring-[rgba(79,184,178,0.25)]"
-              />
+              {communities.length > 0 ? (
+                <select
+                  id="community-id"
+                  required
+                  value={communityId}
+                  onChange={(e) => setCommunityId(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--lagoon)] focus:ring-2 focus:ring-[rgba(79,184,178,0.25)]"
+                >
+                  <option value="">Select a community…</option>
+                  {communities.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="community-id"
+                  type="text"
+                  required
+                  value={communityId}
+                  onChange={(e) => setCommunityId(e.target.value)}
+                  placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm text-[var(--sea-ink)] placeholder:text-[var(--sea-ink-soft)] outline-none transition focus:border-[var(--lagoon)] focus:ring-2 focus:ring-[rgba(79,184,178,0.25)]"
+                />
+              )}
             </div>
 
             <div>
