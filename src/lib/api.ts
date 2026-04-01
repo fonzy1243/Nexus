@@ -65,9 +65,8 @@ export interface CommentSummary {
   author: string
 }
 
-// ─── TOKEN STORAGE ─────────────────────────────────────────────────────
-let _accessToken: string | null =
-  typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+// token storage — purely in-memory (never touches localStorage)
+let _accessToken: string | null = null
 
 export function getToken() { return _accessToken }
 export function setToken(t: string | null) { _accessToken = t }
@@ -116,9 +115,11 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(init.headers as Record<string, string> ?? {}),
   }
-
-  const token = _accessToken || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  
+  let token = _accessToken
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   let res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
 
@@ -173,12 +174,10 @@ export async function refreshToken(): Promise<string | null> {
     if (!res.ok) throw new Error('Refresh failed')
     const data = await res.json()
     setToken(data.access_token)
-    if (typeof window !== 'undefined') localStorage.setItem('access_token', data.access_token)
     return data.access_token
   } catch {
     setToken(null)
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token')
       window.dispatchEvent(new Event('auth:logout'))
     }
     return null
@@ -299,7 +298,6 @@ export async function changeUsername(username: string): Promise<AuthResponse> {
     method: 'PATCH',
     body: JSON.stringify({ username, target_user_id: null }),
   })
-  if (typeof window !== 'undefined') localStorage.setItem('access_token', data.access_token)
   setToken(data.access_token)
   return data
 }
@@ -313,7 +311,6 @@ export async function changePassword(
     method: 'PATCH',
     body: JSON.stringify({ current_password, new_password, confirm_password }),
   })
-  if (typeof window !== 'undefined') localStorage.setItem('access_token', data.access_token)
   setToken(data.access_token)
   return data
 }
