@@ -186,6 +186,7 @@ export async function refreshToken(): Promise<string | null> {
 		if (!res.ok) throw new Error('Refresh failed')
 		const data = await res.json()
 		setToken(data.access_token)
+		if (data.role) localStorage.setItem('role', data.role)
 		return data.access_token
 	} catch {
 		setToken(null)
@@ -388,5 +389,5 @@ export interface LogEntry {
 }
 
 export async function getAdminLogs(): Promise<LogEntry[]> {
-	return apiFetch('/logs/')
+	return apiFetch('/logs')
 }
