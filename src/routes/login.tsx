@@ -154,7 +154,8 @@ function LoginPage() {
       setToken(data.access_token)
       localStorage.setItem('user_id', data.user_id)
       localStorage.setItem('username', data.username)
-      setUser({ username: data.username, user_id: data.user_id })
+      localStorage.setItem('role', data.role ?? 'user')
+      setUser({ username: data.username, user_id: data.user_id, role: data.role ?? 'user' })
       navigate({ to: '/' })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -181,7 +182,8 @@ function LoginPage() {
       setToken(data.access_token)
       localStorage.setItem('user_id', data.user_id)
       localStorage.setItem('username', data.username)
-      setUser({ username: data.username, user_id: data.user_id })
+      localStorage.setItem('role', data.role ?? 'user')
+      setUser({ username: data.username, user_id: data.user_id, role: data.role ?? 'user' })
       navigate({ to: '/' })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

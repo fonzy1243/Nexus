@@ -6,6 +6,7 @@ export interface AuthResponse {
   access_token: string
   user_id: string
   username: string
+  role: string
   last_login_at?: string | null
 }
 
@@ -324,4 +325,47 @@ export async function setSecurityQuestion(
     method: 'POST',
     body: JSON.stringify({ question, answer, current_password }),
   })
+}
+
+// search
+
+export interface SearchUserResult {
+  id: string
+  username: string
+  created_at: string
+}
+
+export interface SearchPostResult {
+  id: string
+  title: string
+  body: string
+  author: string
+  author_id: string
+  community_id: string
+  is_pinned: boolean
+  created_at: string
+}
+
+export interface SearchResults {
+  users: SearchUserResult[]
+  posts: SearchPostResult[]
+}
+
+export async function search(q: string, page = 1): Promise<SearchResults> {
+  return apiFetch(`/search?q=${encodeURIComponent(q)}&page=${page}`)
+}
+
+// admin
+
+export interface LogEntry {
+  id: string
+  actor_id: string
+  action: string
+  target_type: string
+  target_id: string
+  created_at: string
+}
+
+export async function getAdminLogs(): Promise<LogEntry[]> {
+  return apiFetch('/logs/')
 }

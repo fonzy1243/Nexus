@@ -4,6 +4,7 @@ import { setToken } from '@/lib/api'
 export interface AuthUser {
   user_id: string
   username: string
+  role: string
 }
 
 interface AuthContextValue {
@@ -28,8 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const username = localStorage.getItem('username')
     const user_id = localStorage.getItem('user_id')
+    const role = localStorage.getItem('role') ?? 'user'
     if (username && user_id) {
-      setUser({ username, user_id })
+      setUser({ username, user_id, role })
     }
     setIsLoading(false)
 
@@ -46,11 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   function signOut() {
-    // Clear in-memory access token (fix #11 + #21)
     setToken(null)
-    // Clear user identity from localStorage
     localStorage.removeItem('user_id')
     localStorage.removeItem('username')
+    localStorage.removeItem('role')
     setUser(null)
   }
 
