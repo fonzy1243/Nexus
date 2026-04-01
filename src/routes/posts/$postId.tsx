@@ -1,18 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { Post, Comment } from '@/lib/api'
+import { getPost, getComments, createComment, votePost } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context.tsx'
-import { MOCK_POSTS, MOCK_COMMENTS, delay } from '@/lib/mock-data'
-
-// agen, swap nalang sa real API pag ready na
-async function fetchPost(id: string): Promise<Post | undefined> {
-  await delay(250)
-  return MOCK_POSTS.find(p => p.id === id)
-}
-async function fetchComments(postId: string): Promise<Comment[]> {
-  await delay(200)
-  return MOCK_COMMENTS[postId] ?? []
-}
 
 export const Route = createFileRoute('/posts/$postId')({ component: PostPage })
 
@@ -100,6 +90,7 @@ function PostPage() {
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [commentBody, setCommentBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [votes, setVotes] = useState(0)
@@ -107,37 +98,40 @@ function PostPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([fetchPost(postId), fetchComments(postId)]).then(([p, c]) => {
-      if (p) { setPost(p); setVotes(p.vote_count) }
+    setError(null)
+    Promise.all([
+      getPost(postId),
+      getComments(postId).catch(() => []),
+    ]).then(([p, c]) => {
+      setPost(p)
+      setVotes(p.vote_count)
       setComments(c)
-      setLoading(false)
-    })
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : 'Post not found')
+    }).finally(() => setLoading(false))
   }, [postId])
 
   function handleVote(v: 1 | -1) {
     if (!user) return
     if (userVote === v) { setVotes(votes - v); setUserVote(0) }
     else { setVotes(votes - userVote + v); setUserVote(v) }
+    votePost(postId, v).catch(console.error)
   }
 
   async function handleCommentSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!commentBody.trim() || !user) return
     setSubmitting(true)
-    await delay(600)
-    const newComment: Comment = {
-      id: `new_${Date.now()}`,
-      body: commentBody,
-      author: user.username,
-      user_id: user.user_id,
-      post_id: postId,
-      created_at: new Date().toISOString(),
-      is_pinned: false,
-      vote_count: 1,
+    try {
+      await createComment({ post_id: postId, body: commentBody })
+      const fresh = await getComments(postId).catch(() => comments)
+      setComments(fresh)
+      setCommentBody('')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
     }
-    setComments(prev => [newComment, ...prev])
-    setCommentBody('')
-    setSubmitting(false)
   }
 
   if (loading) {
@@ -153,10 +147,10 @@ function PostPage() {
     )
   }
 
-  if (!post) {
+  if (error || !post) {
     return (
       <main className="page-wrap px-4 pb-12 pt-6 text-center text-[var(--sea-ink-soft)]">
-        <p className="mt-16 text-lg">Post not found.</p>
+        <p className="mt-16 text-lg">{error ?? 'Post not found.'}</p>
         <Link to="/" className="mt-4 block text-[var(--lagoon-deep)] hover:underline">← Back to home</Link>
       </main>
     )
@@ -190,7 +184,7 @@ function PostPage() {
 
             <div className="min-w-0 flex-1">
               <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--sea-ink-soft)]">
-                <Link to="/c/$community" params={{ community: post.community_name }} className="font-semibold text-[var(--sea-ink)] no-underline hover:underline">
+                <Link to="/c/$community" params={{ community: post.community_name ?? '' }} className="font-semibold text-[var(--sea-ink)] no-underline hover:underline">
                   n/{post.community_name}
                 </Link>
                 <span>·</span>
@@ -268,7 +262,7 @@ function PostPage() {
               <p className="mb-3 text-sm text-[var(--sea-ink-soft)]">A community for League of Legends discussion.</p>
               <Link
                 to="/c/$community"
-                params={{ community: post.community_name }}
+                params={{ community: post.community_name ?? '' }}
                 className="block w-full rounded-xl border border-[var(--lagoon)] py-2 text-center text-sm font-bold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.08)]"
               >
                 Visit Community

@@ -212,7 +212,7 @@ export interface CommentSummary {
 }
 
 export async function getUserByUsername(username: string): Promise<PublicUserProfile> {
-  return apiFetch(`/users/u/${username}`)
+  return apiFetch(`/users/by-username/${encodeURIComponent(username)}`)
 }
 
 export async function getUserComments(userId: string, page = 1): Promise<CommentSummary[]> {
