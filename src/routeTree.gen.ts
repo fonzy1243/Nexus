@@ -14,6 +14,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForumRouteImport } from './routes/forum'
 import { Route as CreatePostRouteImport } from './routes/create-post'
+import { Route as CreateCommunityRouteImport } from './routes/create-community'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUsernameRouteImport } from './routes/u/$username'
@@ -47,6 +48,11 @@ const ForumRoute = ForumRouteImport.update({
 const CreatePostRoute = CreatePostRouteImport.update({
   id: '/create-post',
   path: '/create-post',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateCommunityRoute = CreateCommunityRouteImport.update({
+  id: '/create-community',
+  path: '/create-community',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -98,6 +104,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-community': typeof CreateCommunityRoute
   '/create-post': typeof CreatePostRoute
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-community': typeof CreateCommunityRoute
   '/create-post': typeof CreatePostRoute
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create-community': typeof CreateCommunityRoute
   '/create-post': typeof CreatePostRoute
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/create-community'
     | '/create-post'
     | '/forum'
     | '/login'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/create-community'
     | '/create-post'
     | '/forum'
     | '/login'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/create-community'
     | '/create-post'
     | '/forum'
     | '/login'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  CreateCommunityRoute: typeof CreateCommunityRoute
   CreatePostRoute: typeof CreatePostRoute
   ForumRoute: typeof ForumRoute
   LoginRoute: typeof LoginRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/create-post'
       fullPath: '/create-post'
       preLoaderRoute: typeof CreatePostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-community': {
+      id: '/create-community'
+      path: '/create-community'
+      fullPath: '/create-community'
+      preLoaderRoute: typeof CreateCommunityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -318,6 +338,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  CreateCommunityRoute: CreateCommunityRoute,
   CreatePostRoute: CreatePostRoute,
   ForumRoute: ForumRoute,
   LoginRoute: LoginRoute,
