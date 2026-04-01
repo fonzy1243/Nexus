@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SubmitRouteImport } from './routes/submit'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForumRouteImport } from './routes/forum'
@@ -22,11 +23,17 @@ import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-qu
 import { Route as DemoBetterAuthRouteImport } from './routes/demo/better-auth'
 import { Route as CCommunityRouteImport } from './routes/c/$community'
 import { Route as ApiRedditRouteImport } from './routes/api/reddit'
+import { Route as AdminLogsRouteImport } from './routes/admin/logs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const SubmitRoute = SubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -89,6 +96,11 @@ const ApiRedditRoute = ApiRedditRouteImport.update({
   path: '/api/reddit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLogsRoute = AdminLogsRouteImport.update({
+  id: '/admin/logs',
+  path: '/admin/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -102,7 +114,9 @@ export interface FileRoutesByFullPath {
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/admin/logs': typeof AdminLogsRoute
   '/api/reddit': typeof ApiRedditRoute
   '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
@@ -118,7 +132,9 @@ export interface FileRoutesByTo {
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/admin/logs': typeof AdminLogsRoute
   '/api/reddit': typeof ApiRedditRoute
   '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
@@ -135,7 +151,9 @@ export interface FileRoutesById {
   '/forum': typeof ForumRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/admin/logs': typeof AdminLogsRoute
   '/api/reddit': typeof ApiRedditRoute
   '/c/$community': typeof CCommunityRoute
   '/demo/better-auth': typeof DemoBetterAuthRoute
@@ -153,7 +171,9 @@ export interface FileRouteTypes {
     | '/forum'
     | '/login'
     | '/profile'
+    | '/search'
     | '/submit'
+    | '/admin/logs'
     | '/api/reddit'
     | '/c/$community'
     | '/demo/better-auth'
@@ -169,7 +189,9 @@ export interface FileRouteTypes {
     | '/forum'
     | '/login'
     | '/profile'
+    | '/search'
     | '/submit'
+    | '/admin/logs'
     | '/api/reddit'
     | '/c/$community'
     | '/demo/better-auth'
@@ -185,7 +207,9 @@ export interface FileRouteTypes {
     | '/forum'
     | '/login'
     | '/profile'
+    | '/search'
     | '/submit'
+    | '/admin/logs'
     | '/api/reddit'
     | '/c/$community'
     | '/demo/better-auth'
@@ -202,7 +226,9 @@ export interface RootRouteChildren {
   ForumRoute: typeof ForumRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
+  SearchRoute: typeof SearchRoute
   SubmitRoute: typeof SubmitRoute
+  AdminLogsRoute: typeof AdminLogsRoute
   ApiRedditRoute: typeof ApiRedditRoute
   CCommunityRoute: typeof CCommunityRoute
   DemoBetterAuthRoute: typeof DemoBetterAuthRoute
@@ -219,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -305,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRedditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/logs': {
+      id: '/admin/logs'
+      path: '/admin/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AdminLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -322,7 +362,9 @@ const rootRouteChildren: RootRouteChildren = {
   ForumRoute: ForumRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
+  SearchRoute: SearchRoute,
   SubmitRoute: SubmitRoute,
+  AdminLogsRoute: AdminLogsRoute,
   ApiRedditRoute: ApiRedditRoute,
   CCommunityRoute: CCommunityRoute,
   DemoBetterAuthRoute: DemoBetterAuthRoute,
