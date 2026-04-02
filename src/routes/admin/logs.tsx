@@ -25,10 +25,6 @@ function formatDate(iso: string) {
 	})
 }
 
-function shortId(id: string) {
-	return id.slice(0, 8) + '…'
-}
-
 export default function AdminLogsPage() {
 	const { user, isLoading: authLoading } = useAuth()
 	const navigate = useNavigate()
@@ -144,14 +140,14 @@ export default function AdminLogsPage() {
 												{log.action}
 											</span>
 										</td>
-										<td className="px-4 py-3 font-mono text-xs text-[var(--sea-ink-soft)]" title={log.actor_id}>
-											{shortId(log.actor_id)}
+										<td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--sea-ink-soft)]" title={log.actor_id}>
+											{log.actor_id}
 										</td>
 										<td className="px-4 py-3 text-xs text-[var(--sea-ink)]">
 											{log.target_type}
 										</td>
-										<td className="px-4 py-3 font-mono text-xs text-[var(--sea-ink-soft)]" title={log.target_id}>
-											{shortId(log.target_id)}
+										<td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--sea-ink-soft)]" title={log.target_id}>
+											{log.target_id}
 										</td>
 									</tr>
 								))}
