@@ -4,6 +4,7 @@ export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 // ─── INTERFACES ────────────────────────────────────────────────────────
 export interface AuthResponse {
 	access_token: string
+	refresh_token_id: string
 	user_id: string
 	username: string
 	role: string
@@ -76,9 +77,11 @@ export interface CommentSummary {
 
 // token storage — purely in-memory (never touches localStorage)
 let _accessToken: string | null = null
+let _refreshTokenId: string | null = null
 
 export function getToken() { return _accessToken }
 export function setToken(t: string | null) { _accessToken = t }
+export function setRefreshTokenId(id: string | null) { _refreshTokenId = id }
 
 // ─── NORMALIZER helpers ─────────────────────────────────────────────────
 // Normalize a raw post from the API to ensure all fields exist
@@ -119,7 +122,7 @@ function normalizeComment(raw: Record<string, unknown>): Comment {
 }
 
 // ─── CORE FETCH ─────────────────────────────────────────────────────────
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',
 		...(init.headers as Record<string, string> ?? {}),
@@ -161,6 +164,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
 		body: JSON.stringify({ email, password }),
 	})
 	setToken(data.access_token)
+	setRefreshTokenId(data.refresh_token_id)
 	return data
 }
 
@@ -170,11 +174,12 @@ export async function register(username: string, email: string, password: string
 		body: JSON.stringify({ username, email, password }),
 	})
 	setToken(data.access_token)
+	setRefreshTokenId(data.refresh_token_id)
 	return data
 }
 
 export async function logout(): Promise<void> {
-	try { await apiFetch('/users/auth/logout', { method: 'POST' }) } finally { setToken(null) }
+	try { await apiFetch('/users/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token_id: _refreshTokenId }) }) } finally { setToken(null); setRefreshTokenId(null); }
 }
 
 export async function refreshToken(): Promise<string | null> {
@@ -183,14 +188,17 @@ export async function refreshToken(): Promise<string | null> {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
+			body: JSON.stringify({ refresh_token_id: _refreshTokenId })
 		})
 		if (!res.ok) throw new Error('Refresh failed')
 		const data = await res.json()
 		setToken(data.access_token)
+		setRefreshTokenId(data.refresh_token_id)
 		if (data.role) localStorage.setItem('role', data.role)
 		return data.access_token
 	} catch {
 		setToken(null)
+		setRefreshTokenId(null)
 		if (typeof window !== 'undefined') {
 			window.dispatchEvent(new Event('auth:logout'))
 		}
@@ -222,6 +230,18 @@ export async function createPost(data: {
 	return normalizePost(raw)
 }
 
+export async function updatePost(postId: string, data: { title: string, body: string }): Promise<Post> {
+	const raw = await apiFetch<Record<string, unknown>>(`/posts/${postId}`, {
+		method: 'PATCH',
+		body: JSON.stringify(data)
+	})
+	return normalizePost(raw)
+}
+
+export async function deletePost(postId: string): Promise<void> {
+	return apiFetch(`/posts/${postId}`, { method: 'DELETE' })
+}
+
 export async function votePost(postId: string, voteType: 1 | -1): Promise<void> {
 	return apiFetch('/votes', {
 		method: 'POST',
@@ -244,6 +264,18 @@ export async function createComment(postId: string, data: {
 		body: JSON.stringify(data),
 	})
 	return normalizeComment(raw)
+}
+
+export async function updateComment(postId: string, commentId: string, data: { body: string }): Promise<Comment> {
+	const raw = await apiFetch<Record<string, unknown>>(`/posts/${postId}/comments/${commentId}`, {
+		method: 'PATCH',
+		body: JSON.stringify(data)
+	})
+	return normalizeComment(raw)
+}
+
+export async function deleteComment(postId: string, commentId: string): Promise<void> {
+	return apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
 }
 
 // ─── COMMUNITIES ─────────────────────────────────────────────────────────
