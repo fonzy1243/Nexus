@@ -159,7 +159,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 		const text = await res.text().catch(() => res.statusText)
 		let parsed: Record<string, string> | undefined
 		try { parsed = JSON.parse(text) } catch { /* ignore */ }
-		throw new Error(parsed?.error || parsed?.message || text || `HTTP ${res.status}`)
+
+		let errorMessage = parsed?.error || parsed?.message || text || `HTTP ${res.status}`
+
+		errorMessage = errorMessage.replace(/^["']|["']$/g, '')
+
+		errorMessage = errorMessage.replace(/^(bad request|internal server error|not found|unauthorized|error)s?[:\-]?\s*/i, '')
+
+		throw new Error(errorMessage)
 	}
 
 	if (res.status === 204) {
