@@ -61,6 +61,7 @@ export interface CommunityMember {
 export interface PublicUserProfile {
 	id: string
 	username: string
+	role: string
 	created_at: string
 }
 
@@ -313,6 +314,20 @@ export async function getUserPosts(userId: string, page = 1): Promise<Post[]> {
 
 export async function getUserComments(userId: string, page = 1): Promise<CommentSummary[]> {
 	return apiFetch<CommentSummary[]>(`/users/${userId}/comments?page=${page}`)
+}
+
+export async function makeSiteAdmin(userId: string): Promise<void> {
+	return apiFetch('/users/admin/role', {
+		method: 'POST',
+		body: JSON.stringify({ user_id: userId })
+	})
+}
+
+export async function removeSiteAdmin(userId: string): Promise<void> {
+	return apiFetch('/users/admin/role', {
+		method: 'DELETE',
+		body: JSON.stringify({ user_id: userId })
+	})
 }
 
 // ─── ACCOUNT SETTINGS ────────────────────────────────────────────────────
