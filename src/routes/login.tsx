@@ -23,6 +23,13 @@ function EyeIcon({ open }: { open: boolean }) {
 	)
 }
 
+function getCleanError(err: unknown) {
+	let msg = err instanceof Error ? err.message : 'Something went wrong'
+	msg = msg.replace(/^["']|["']$/g, '')
+	const cleaned = msg.replace(/^(bad request|internal server error|not found|unauthorized|error)s?[:\-]?\s*/i, '')
+	return cleaned
+}
+
 function PasswordInput({
 	id,
 	value,
@@ -159,7 +166,7 @@ function LoginPage() {
 			setUser({ username: data.username, user_id: data.user_id, role: data.role ?? 'user' })
 			navigate({ to: '/' })
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Something went wrong')
+			setError(getCleanError(err))
 		} finally {
 			setLoading(false)
 		}
@@ -188,7 +195,7 @@ function LoginPage() {
 			setUser({ username: data.username, user_id: data.user_id, role: data.role ?? 'user' })
 			navigate({ to: '/' })
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Something went wrong')
+			setError(getCleanError(err))
 		} finally {
 			setLoading(false)
 		}
@@ -209,7 +216,7 @@ function LoginPage() {
 			setForgotQuestion(data)
 			setForgotStep('answer')
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Something went wrong')
+			setError(getCleanError(err))
 		} finally {
 			setLoading(false)
 		}
@@ -245,7 +252,7 @@ function LoginPage() {
 			resetForgot()
 			setSuccessMsg('Password reset! You can now sign in with your new password.')
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Something went wrong')
+			setError(getCleanError(err))
 		} finally {
 			setLoading(false)
 		}
