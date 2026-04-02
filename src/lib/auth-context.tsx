@@ -1,67 +1,87 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { setToken } from '@/lib/api'
+import { API_BASE, getRefreshTokenId, setRefreshTokenId, setToken } from '@/lib/api'
 
 export interface AuthUser {
-  user_id: string
-  username: string
-  role: string
+	user_id: string
+	username: string
+	role: string
 }
 
 interface AuthContextValue {
-  user: AuthUser | null
-  setUser: (u: AuthUser | null) => void
-  signOut: () => void
-  isLoading: boolean
+	user: AuthUser | null
+	setUser: (u: AuthUser | null) => void
+	signOut: () => void
+	isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextValue>({
-  user: null,
-  setUser: () => {},
-  signOut: () => {},
-  isLoading: true,
+	user: null,
+	setUser: () => { },
+	signOut: () => { },
+	isLoading: true,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+	const [user, setUser] = useState<AuthUser | null>(null)
+	const [isLoading, setIsLoading] = useState(true)
 
-  // Restore user identity (not token) from localStorage on mount
-  useEffect(() => {
-    const username = localStorage.getItem('username')
-    const user_id = localStorage.getItem('user_id')
-    const role = localStorage.getItem('role') ?? 'user'
-    if (username && user_id) {
-      setUser({ username, user_id, role })
-    }
-    setIsLoading(false)
+	useEffect(() => {
+		const restore = async () => {
+			try {
+				const res = await fetch(`${API_BASE}/users/auth/refresh`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ refresh_token_id: getRefreshTokenId() }),
+				})
 
-    // Listen for dead token API events to instantly log the user out
-    const handleForceLogout = () => {
-      signOut()
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
-    }
+				if (res.ok) {
+					const data = await res.json()
+					setToken(data.access_token)
+					setRefreshTokenId(data.refresh_token_id)
+					setUser({
+						user_id: data.user_id,
+						username: data.username,
+						role: data.role,
+					})
+				}
+			} catch {
+				// no session
+			} finally {
+				setIsLoading(false)
+			}
+		}
 
-    window.addEventListener('auth:logout', handleForceLogout)
-    return () => window.removeEventListener('auth:logout', handleForceLogout)
-  }, [])
+		// Listen for dead token API events to instantly log the user out
+		const handleForceLogout = () => {
+			signOut()
+			if (window.location.pathname !== '/login') {
+				window.location.href = '/login'
+			}
+		}
 
-  function signOut() {
-    setToken(null)
-    localStorage.removeItem('user_id')
-    localStorage.removeItem('username')
-    localStorage.removeItem('role')
-    setUser(null)
-  }
+		restore()
+		window.addEventListener('auth:logout', handleForceLogout)
+		return () => window.removeEventListener('auth:logout', handleForceLogout)
+	}, [])
 
-  return (
-    <AuthContext.Provider value={{ user, setUser, signOut, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  )
+	function signOut() {
+		setToken(null)
+		setRefreshTokenId(null)
+		setUser(null)
+		localStorage.removeItem('user_id')
+		localStorage.removeItem('username')
+		localStorage.removeItem('role')
+		localStorage.removeItem('rtid')
+	}
+
+	return (
+		<AuthContext.Provider value={{ user, setUser, signOut, isLoading }}>
+			{children}
+		</AuthContext.Provider>
+	)
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
-}
+	return useContext(AuthContext)
+}

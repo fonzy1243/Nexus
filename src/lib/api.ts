@@ -81,7 +81,14 @@ let _refreshTokenId: string | null = null
 
 export function getToken() { return _accessToken }
 export function setToken(t: string | null) { _accessToken = t }
-export function setRefreshTokenId(id: string | null) { _refreshTokenId = id }
+export function getRefreshTokenId(): string | null {
+	return _refreshTokenId ?? localStorage.getItem('rtid')
+}
+export function setRefreshTokenId(id: string | null) {
+	_refreshTokenId = id
+	if (id) localStorage.setItem('rtid', id)
+	else localStorage.removeItem('rtid')
+}
 
 // ─── NORMALIZER helpers ─────────────────────────────────────────────────
 // Normalize a raw post from the API to ensure all fields exist
@@ -136,9 +143,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 	let res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
 
 	if (res.status === 401 && path !== '/users/auth/refresh') {
-		const newToken = await refreshToken()
-		if (newToken) {
-			headers['Authorization'] = `Bearer ${newToken}`
+		if (!_accessToken) {
+			const newToken = await refreshToken()
+			if (newToken) {
+				headers['Authorization'] = `Bearer ${newToken}`
+				res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
+			}
+		} else {
+			headers['Authorization'] = `Bearer ${_accessToken}`
 			res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
 		}
 	}
@@ -188,7 +200,7 @@ export async function refreshToken(): Promise<string | null> {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
-			body: JSON.stringify({ refresh_token_id: _refreshTokenId })
+			body: JSON.stringify({ refresh_token_id: getRefreshTokenId() })
 		})
 		if (!res.ok) throw new Error('Refresh failed')
 		const data = await res.json()
