@@ -272,7 +272,7 @@ function CommunityPage() {
 											</Link>
 
 											{/* Moderator Controls */}
-											{isCurrentUserMod && member.username !== user?.username && (
+											{(isCurrentUserMod || user?.role === 'Admin') && member.username !== user?.username && (
 												<button
 													onClick={() => handleToggleMod(member.id, member.role)}
 													className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${member.role === 'Moderator'
