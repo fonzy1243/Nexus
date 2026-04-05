@@ -163,6 +163,12 @@ function LoginPage() {
 			localStorage.setItem('user_id', data.user_id)
 			localStorage.setItem('username', data.username)
 			localStorage.setItem('role', data.role ?? 'user')
+
+			const last = data.last_login_at
+			const msg = last ? `Last login attempt: ${new Date(last).toLocaleString()}` : 'Welcome to Nexus!'
+			sessionStorage.setItem('nexus:last-login-toast', msg)
+			window.dispatchEvent(new Event('nexus:toast'))
+
 			setUser({ username: data.username, user_id: data.user_id, role: data.role ?? 'user' })
 			navigate({ to: '/' })
 		} catch (err: unknown) {
